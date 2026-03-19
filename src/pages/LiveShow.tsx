@@ -106,8 +106,8 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
 
       if (effectiveRoundId) {
         await loadCurrentRound(effectiveRoundId);
-        if (user && liveEvent) {
-          await loadUserVote(liveEvent.id, effectiveRoundId);
+        if (user) {
+          await loadUserVote(eventId, effectiveRoundId);
         }
       } else {
         setCurrentRound(null);
@@ -395,7 +395,7 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {liveEvent.stream_url ? (
-            <div className="bg-black rounded-2xl overflow-hidden aspect-video border border-white/10">
+            <div className="glass-dark rounded-2xl overflow-hidden aspect-video border border-white/20">
               <iframe
                 src={getYouTubeEmbedUrl(liveEvent.stream_url)}
                 className="w-full h-full"
@@ -471,9 +471,6 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
                       <Music className="w-14 h-14 text-cyan-400/50" />
                     </div>
                   )}
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-electric-500 rounded-full p-2 shadow-glow-md animate-pulse">
-                    <PlayCircle className="w-5 h-5 text-white" />
-                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="badge-primary mb-4">
@@ -535,7 +532,7 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
                 </div>
 
                 <div className="space-y-6">
-                  {isVotingPhase ? (
+                  {showState?.voting_open ? (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <Star className="w-4 h-4 text-cyan-400 animate-pulse" />
@@ -544,25 +541,35 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
                       <div className="space-y-3">
                         {roundPerformances.map((perf) => {
                           const userRating = userVotes.get(perf.id)?.base_rating || 0;
+                          const isLive = currentPerformance?.id === perf.id;
                           return (
                             <div
                               key={perf.id}
-                              className="glass rounded-xl p-4 border-2 border-cyan-500/50 bg-cyan-500/10"
+                              className={`glass rounded-xl p-4 border-2 bg-cyan-500/10 ${
+                                isLive ? 'border-cyan-500/60 ring-1 ring-inset ring-cyan-500/30' : 'border-cyan-500/40'
+                              }`}
                             >
                               <div className="flex items-center gap-3 mb-3">
                                 {perf.artist.photo_url ? (
                                   <img
                                     src={perf.artist.photo_url}
                                     alt={perf.artist.name}
-                                    className="w-10 h-10 rounded-lg object-cover shadow-md"
+                                    className={`w-10 h-10 rounded-lg object-cover shadow-md ${isLive ? 'ring-2 ring-cyan-500/40' : ''}`}
                                   />
                                 ) : (
-                                  <div className="w-10 h-10 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 rounded-lg flex items-center justify-center">
+                                  <div className={`w-10 h-10 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 rounded-lg flex items-center justify-center ${isLive ? 'ring-2 ring-cyan-500/40' : ''}`}>
                                     <Music className="w-5 h-5 text-cyan-400/50" />
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-white text-sm truncate">{perf.artist.name}</p>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <p className="font-semibold text-white text-sm truncate">{perf.artist.name}</p>
+                                    {isLive && (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 font-semibold">
+                                        LIVE
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-cyan-400 text-xs truncate">"{perf.song_title}"</p>
                                 </div>
                               </div>
@@ -585,9 +592,7 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
                                 ))}
                                 {userRating > 0 && (
                                   <div className="ml-2 px-2 py-1 bg-cyan-500/20 rounded-lg border border-cyan-500/30">
-                                    <span className="text-cyan-400 font-bold text-xs">
-                                      {userRating}
-                                    </span>
+                                    <span className="text-cyan-400 font-bold text-xs">{userRating}</span>
                                   </div>
                                 )}
                               </div>

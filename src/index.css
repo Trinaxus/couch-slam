@@ -109,7 +109,7 @@
 
 @layer utilities {
   .text-shadow-glow {
-    text-shadow: 0 0 20px rgba(0, 225, 255, 0.5);
+    text-shadow: 0 0 20px rgba(20, 184, 166, 0.45);
   }
 
   .animate-gradient {
@@ -168,14 +168,18 @@
   }
 
   .shadow-glow-sm {
-    box-shadow: 0 0 20px rgba(0, 225, 255, 0.15);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.18);
   }
 
   .shadow-glow-md {
-    box-shadow: 0 0 30px rgba(0, 225, 255, 0.2);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.26);
+  }
+
+  .shadow-glow-orange {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.26), 0 0 60px rgba(245, 158, 11, 0.16);
   }
 
   .shadow-glow-electric {
-    box-shadow: 0 0 40px rgba(255, 123, 0, 0.3), 0 0 20px rgba(0, 225, 255, 0.2);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.32), 0 0 20px rgba(20, 184, 166, 0.22);
   }
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { Music2, Trophy, Users, Radio, Star, Clock, Mic2, CheckCircle, Camera, Video, Disc3, Award, Gift, Sparkles, MessageCircle, Monitor, Eye, Smartphone, TrendingUp, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Music2, Trophy, Users, Radio, Star, Mic2, CheckCircle, Video, Disc3, Award, MessageCircle, Eye, Smartphone, TrendingUp, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface HomeProps {
   onNavigate?: (page: string) => void;
@@ -335,7 +335,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
       <section id="zuschauer" className="space-y-12 scroll-mt-20">
         <button
           onClick={() => setShowAudienceSection(!showAudienceSection)}
-          className="w-full card-premium hover:border-orange-500/40 transition-all cursor-pointer"
+          className="w-full card-premium hover:border-orange-500/40 hover:shadow-glow-orange transition-all cursor-pointer"
         >
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-full mb-4">
@@ -380,10 +380,10 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
           </div>
         </div>
 
-        <div className="card-premium bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-orange-500/20">
+        <div className="card-premium bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-orange-500/20 hover:shadow-glow-orange">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-orange">
                 <Radio className="w-8 h-8 text-white" />
               </div>
               <h3 className="mb-3">Live Stream</h3>
@@ -394,7 +394,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-orange">
                 <Star className="w-8 h-8 text-white" />
               </div>
               <h3 className="mb-3">Live-Voting</h3>
@@ -405,7 +405,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-orange">
                 <MessageCircle className="w-8 h-8 text-white" />
               </div>
               <h3 className="mb-3">Interaktive Show</h3>
@@ -416,7 +416,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-orange">
                 <Smartphone className="w-8 h-8 text-white" />
               </div>
               <h3 className="mb-3">Überall dabei</h3>
@@ -431,7 +431,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="card-premium">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-glow-orange">
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -446,7 +446,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
 
           <div className="card-premium">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-glow-electric">
+              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-glow-orange">
                 <Trophy className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -564,13 +564,13 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
           </button>
         </div>
 
-        <div className="card-premium text-center bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/20">
-          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-electric">
+        <div className="card-premium text-center bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/20 hover:border-orange-500/40 hover:shadow-glow-orange">
+          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-glow-orange">
             <Eye className="w-8 h-8 text-white" />
           </div>
           <h3 className="mb-3">Zuschauer werden</h3>
-          <p className="text-gray-300 mb-6 leading-relaxed">
-            Registriere dich kostenlos und werde Teil der Community. Entdecke neue Talente live.
+          <p className="text-gray-300 mb-6">
+            Registriere dich kostenlos und werde Teil des Couch Slam Publikums.
           </p>
           <button
             onClick={() => {
@@ -578,7 +578,7 @@ export function Home({ onNavigate, onShowAuth }: HomeProps = {}) {
                 onNavigate('artists');
               }
             }}
-            className="btn-secondary w-full"
+            className="btn-secondary w-full hover:border-orange-400/60 hover:shadow-glow-orange"
           >
             Nächste Events ansehen
           </button>

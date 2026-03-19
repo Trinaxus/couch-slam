@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Event, Performance, Artist, Round } from '../lib/types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Trophy, Medal, Music, TrendingUp, Target, Crown } from 'lucide-react';
@@ -117,23 +117,11 @@ export function Scoreboard() {
   };
 
   const getRankIcon = (index: number, roundType: 'preliminary' | 'final') => {
-    if (roundType === 'final') {
-      if (index === 0) return <Crown className="w-8 h-8 text-yellow-400" />;
-      if (index === 1) return <Trophy className="w-6 h-6 text-gray-300" />;
-    }
-    if (index === 0) return <Trophy className="w-6 h-6 text-yellow-400" />;
-    if (index === 1) return <Medal className="w-6 h-6 text-gray-300" />;
+    void roundType;
+    if (index === 0) return <Medal className="w-7 h-7 text-yellow-400" />;
+    if (index === 1) return <Medal className="w-7 h-7 text-gray-300" />;
+    if (index === 2) return <Medal className="w-7 h-7 text-amber-600" />;
     return null;
-  };
-
-  const getRankColor = (index: number, roundType: 'preliminary' | 'final') => {
-    if (roundType === 'final') {
-      if (index === 0) return 'from-yellow-500/30 to-orange-500/30 border-yellow-500/50';
-      if (index === 1) return 'from-gray-400/20 to-gray-500/20 border-gray-400/30';
-    }
-    if (index === 0) return 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30';
-    if (index === 1) return 'from-gray-400/20 to-gray-500/20 border-gray-400/30';
-    return 'from-gray-700/20 to-gray-800/20 border-gray-700/30';
   };
 
   if (loading) {
@@ -300,9 +288,15 @@ export function Scoreboard() {
                           )}
                         </div>
 
-                        <div className="text-right px-6 py-4 glass rounded-xl border border-cyan-500/20 flex-shrink-0">
-                          <div className="font-display text-3xl font-bold text-gradient-electric">{performance.total_votes}</div>
-                          <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide">points</div>
+                        <div className="flex-shrink-0">
+                          <div className="min-w-[112px] px-5 py-3.5 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.05] to-white/[0.02] text-center flex flex-col items-center justify-center">
+                            <div className="font-display text-3xl font-bold leading-none text-gradient-electric">
+                              {performance.total_votes}
+                            </div>
+                            <div className="mt-1 text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+                              Punkte
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

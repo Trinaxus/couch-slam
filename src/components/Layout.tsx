@@ -170,10 +170,10 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                   <button
                     key={item.id}
                     onClick={() => handleNavigate(item.id)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                    className={`h-11 flex items-center gap-2 px-4 rounded-2xl font-semibold text-sm transition-all duration-200 border ${
                       currentPage === item.id
-                        ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/20 text-cyan-400 border border-cyan-500/30'
-                        : 'text-gray-300 hover:bg-white/5 hover:text-cyan-300 border border-transparent'
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/15 text-cyan-200 border-cyan-500/40 ring-1 ring-inset ring-cyan-500/25'
+                        : 'bg-white/[0.02] text-gray-200 hover:bg-white/[0.05] hover:text-white border-white/10 hover:border-white/20'
                     }`}
                   >
                     <item.icon className="w-4.5 h-4.5" />
@@ -186,7 +186,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowMobileMenu(true)}
-                className="lg:hidden p-3 glass rounded-xl text-gray-300 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300 border border-white/10"
+                className="lg:hidden h-11 w-11 inline-flex items-center justify-center glass rounded-2xl text-gray-200 hover:text-white transition-all duration-200 border border-white/10 hover:border-white/20 hover:bg-white/[0.04]"
                 title="Menu"
               >
                 <Menu className="w-5 h-5" />
@@ -194,7 +194,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
 
               {user && profile ? (
                 <>
-                  <div className="hidden sm:flex glass px-4 py-2.5 rounded-xl border border-white/10">
+                  <div className="hidden sm:flex glass h-11 px-4 rounded-2xl border border-white/10">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
                         <User className="w-4.5 h-4.5 text-slate-950" />
@@ -209,17 +209,21 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               ) : (
                 <button
                   onClick={onShowAuth}
-                  className="btn-primary flex items-center gap-2 text-sm"
+                  className="h-11 px-4 inline-flex items-center gap-2 rounded-2xl font-semibold text-sm transition-all duration-200 bg-cyan-500/15 hover:bg-cyan-500/20 text-cyan-100 border border-cyan-500/25 hover:border-cyan-400/35"
                 >
                   <User className="w-4.5 h-4.5" />
                   <span className="hidden sm:inline font-bold">{t.nav.signIn}</span>
                 </button>
               )}
 
-              <div className="relative" data-settings-menu-root="true">
+              <div className="relative hidden sm:block" data-settings-menu-root="true">
                 <button
                   onClick={() => setShowSettingsMenu((v) => !v)}
-                  className="p-3 glass rounded-xl text-gray-300 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300 border border-white/10"
+                  className={`h-11 w-11 inline-flex items-center justify-center glass rounded-2xl transition-all duration-200 border ${
+                    showSettingsMenu
+                      ? 'text-white border-cyan-500/35 ring-1 ring-inset ring-cyan-500/25 bg-white/[0.04]'
+                      : 'text-gray-200 hover:text-white border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+                  }`}
                   title="Settings"
                 >
                   <Settings className="w-4.5 h-4.5" />
@@ -343,7 +347,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
 
                 <button
                   onClick={() => setShowMobileMenu(false)}
-                  className="p-3 glass rounded-xl text-gray-300 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300 border border-white/10"
+                  className="h-11 w-11 inline-flex items-center justify-center glass rounded-2xl text-gray-200 hover:text-white transition-all duration-200 border border-white/10 hover:border-white/20 hover:bg-white/[0.04]"
                   title="Close"
                 >
                   <X className="w-5 h-5" />
@@ -351,7 +355,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               </div>
 
               {user && profile && (
-                <div className="mt-4 glass px-4 py-3 rounded-xl border border-white/10">
+                <div className="mt-4 glass h-11 px-4 rounded-2xl border border-white/10 flex items-center">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
                       <User className="w-5 h-5 text-slate-950" />
@@ -369,10 +373,10 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                   <button
                     key={item.id}
                     onClick={() => handleNavigate(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 border ${
+                    className={`w-full h-11 flex items-center gap-3 px-4 rounded-2xl font-semibold text-sm transition-all duration-200 border ${
                       currentPage === item.id
-                        ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/20 text-cyan-400 border-cyan-500/30'
-                        : 'text-gray-200 hover:bg-white/5 border-white/10'
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/15 text-cyan-200 border-cyan-500/40 ring-1 ring-inset ring-cyan-500/25'
+                        : 'bg-white/[0.02] text-gray-200 hover:bg-white/[0.05] hover:text-white border-white/10 hover:border-white/20'
                     }`}
                   >
                     <item.icon className="w-4.5 h-4.5" />
@@ -387,7 +391,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                     toggleLanguage();
                     setShowMobileMenu(false);
                   }}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                  className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl transition-all duration-200 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                 >
                   <div className="flex items-center gap-3">
                     <Languages className="w-4.5 h-4.5 text-gray-300" />
@@ -402,7 +406,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                     setShowMobileMenu(false);
                   }}
                   disabled={!canFullscreen}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl transition-all duration-200 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3">
                     {isFullscreen ? (
@@ -417,7 +421,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
 
                 {profile?.access_role === 'admin' && (
                   <div
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/10"
+                    className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl border border-white/10 bg-white/[0.02]"
                     title={
                       dbOk === null
                         ? 'DB Status: unknown'
@@ -444,7 +448,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                       setShowMobileMenu(false);
                       void handleSignOut();
                     }}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                    className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl transition-all duration-200 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                   >
                     <div className="flex items-center gap-3">
                       <LogOut className="w-4.5 h-4.5 text-gray-300" />
@@ -457,7 +461,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                       setShowMobileMenu(false);
                       onShowAuth();
                     }}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                    className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl transition-all duration-200 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                   >
                     <div className="flex items-center gap-3">
                       <User className="w-4.5 h-4.5 text-gray-300" />
