@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Round, Artist, Performance } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Plus, X, Music, AlertCircle } from 'lucide-react';
+import { Users, Plus, X, Music, AlertCircle, Save } from 'lucide-react';
 
 interface RoundArtistAssignmentProps {
   eventId: string;
@@ -23,15 +23,19 @@ export function RoundArtistAssignment({ eventId, rounds, performances, onUpdate 
   const [acceptedArtists, setAcceptedArtists] = useState<ArtistWithPerformance[]>([]);
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [loading, setLoading] = useState(true);
+  const [songEdits, setSongEdits] = useState<Record<string, { preliminary_song_title: string; final_song_title: string }>>({});
+  const [savingApplicationId, setSavingApplicationId] = useState<string | null>(null);
 
   const serverBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) || '';
   const acceptedArtistsUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/accepted_artists_list.php` : '';
   const performancesCreateUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/performances_create.php` : '';
   const performancesDeleteUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/performances_delete.php` : '';
+  const applicationsUpdateUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/applications_update.php` : '';
 
   const acceptedArtistsUrlWithToken = acceptedArtistsUrl && token ? `${acceptedArtistsUrl}?token=${encodeURIComponent(token)}` : acceptedArtistsUrl;
   const performancesCreateUrlWithToken = performancesCreateUrl && token ? `${performancesCreateUrl}?token=${encodeURIComponent(token)}` : performancesCreateUrl;
   const performancesDeleteUrlWithToken = performancesDeleteUrl && token ? `${performancesDeleteUrl}?token=${encodeURIComponent(token)}` : performancesDeleteUrl;
+  const applicationsUpdateUrlWithToken = applicationsUpdateUrl && token ? `${applicationsUpdateUrl}?token=${encodeURIComponent(token)}` : applicationsUpdateUrl;
 
   useEffect(() => {
     loadAcceptedArtists();
@@ -61,11 +65,54 @@ export function RoundArtistAssignment({ eventId, rounds, performances, onUpdate 
         throw new Error(json?.error || 'Failed to load accepted artists');
       }
 
-      setAcceptedArtists(Array.isArray(json.artists) ? json.artists : []);
+      const list = Array.isArray(json.artists) ? (json.artists as ArtistWithPerformance[]) : [];
+      setAcceptedArtists(list);
+
+      const nextEdits: Record<string, { preliminary_song_title: string; final_song_title: string }> = {};
+      for (const a of list) {
+        if (!a.acceptedApplication?.id) continue;
+        nextEdits[a.acceptedApplication.id] = {
+          preliminary_song_title: a.acceptedApplication.preliminary_song_title || '',
+          final_song_title: a.acceptedApplication.final_song_title || '',
+        };
+      }
+      setSongEdits(nextEdits);
     } catch (error) {
       console.error('Error loading accepted artists:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveSongTitles = async (applicationId: string) => {
+    try {
+      if (!applicationsUpdateUrlWithToken) throw new Error('Missing VITE_SERVER_BASE_URL');
+      const edits = songEdits[applicationId];
+      if (!edits) throw new Error('Missing edits');
+
+      setSavingApplicationId(applicationId);
+
+      const res = await fetch(applicationsUpdateUrlWithToken, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: applicationId,
+          preliminary_song_title: edits.preliminary_song_title,
+          final_song_title: edits.final_song_title,
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to update application');
+
+      await loadAcceptedArtists();
+    } catch (error: any) {
+      console.error('Error updating application song titles:', error);
+      alert(error.message || 'Failed to update application');
+    } finally {
+      setSavingApplicationId(null);
     }
   };
 
@@ -306,13 +353,58 @@ export function RoundArtistAssignment({ eventId, rounds, performances, onUpdate 
                           <div>
                             <h5 className="font-semibold text-white">{artist.name}</h5>
                             {artist.acceptedApplication && (
-                              <div className="text-sm text-gray-400 space-y-0.5">
-                                <p>
-                                  <span className="text-cyan-400">Vorrunde:</span> "{artist.acceptedApplication.preliminary_song_title}"
-                                </p>
-                                <p>
-                                  <span className="text-electric-400">Finale:</span> "{artist.acceptedApplication.final_song_title}"
-                                </p>
+                              <div className="text-sm text-gray-400 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400 whitespace-nowrap">Vorrunde:</span>
+                                  <input
+                                    value={songEdits[artist.acceptedApplication.id]?.preliminary_song_title ?? artist.acceptedApplication.preliminary_song_title ?? ''}
+                                    onChange={(e) =>
+                                      setSongEdits((prev) => ({
+                                        ...prev,
+                                        [artist.acceptedApplication!.id]: {
+                                          preliminary_song_title: e.target.value,
+                                          final_song_title:
+                                            prev[artist.acceptedApplication!.id]?.final_song_title ??
+                                            artist.acceptedApplication!.final_song_title ??
+                                            '',
+                                        },
+                                      }))
+                                    }
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    placeholder="Songtitel Vorrunde"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-electric-400 whitespace-nowrap">Finale:</span>
+                                  <input
+                                    value={songEdits[artist.acceptedApplication.id]?.final_song_title ?? artist.acceptedApplication.final_song_title ?? ''}
+                                    onChange={(e) =>
+                                      setSongEdits((prev) => ({
+                                        ...prev,
+                                        [artist.acceptedApplication!.id]: {
+                                          preliminary_song_title:
+                                            prev[artist.acceptedApplication!.id]?.preliminary_song_title ??
+                                            artist.acceptedApplication!.preliminary_song_title ??
+                                            '',
+                                          final_song_title: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-md py-1 px-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    placeholder="Songtitel Finale"
+                                  />
+                                </div>
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveSongTitles(artist.acceptedApplication!.id)}
+                                    disabled={savingApplicationId === artist.acceptedApplication.id}
+                                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1"
+                                  >
+                                    <Save className="w-3.5 h-3.5" />
+                                    {savingApplicationId === artist.acceptedApplication.id ? 'Saving...' : 'Save'}
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -320,8 +412,16 @@ export function RoundArtistAssignment({ eventId, rounds, performances, onUpdate 
                         <button
                           onClick={() => handleAssignArtist(
                             artist.id,
-                            artist.acceptedApplication?.preliminary_song_title || 'TBA',
-                            artist.acceptedApplication?.final_song_title || 'TBA'
+                            artist.acceptedApplication?.id
+                              ? songEdits[artist.acceptedApplication.id]?.preliminary_song_title ??
+                                artist.acceptedApplication.preliminary_song_title ??
+                                'TBA'
+                              : 'TBA',
+                            artist.acceptedApplication?.id
+                              ? songEdits[artist.acceptedApplication.id]?.final_song_title ??
+                                artist.acceptedApplication.final_song_title ??
+                                'TBA'
+                              : 'TBA'
                           )}
                           className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-medium transition-all flex items-center gap-2"
                         >

@@ -242,60 +242,65 @@ export function Scoreboard() {
                       {index === 0 && round.round_type === 'final' && (
                         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/20 to-electric-500/10 rounded-full blur-3xl" />
                       )}
-                      <div className="relative flex items-center gap-6">
-                        <div className="flex-shrink-0 text-center">
-                          {getRankIcon(index, round.round_type) || (
-                            <div className="w-14 h-14 glass rounded-2xl flex items-center justify-center border border-white/20">
-                              <span className="text-2xl font-bold text-gray-400">#{index + 1}</span>
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-4 min-w-0">
+                          {performance.artist.photo_url ? (
+                            <div className="relative flex-shrink-0">
+                              <img
+                                src={performance.artist.photo_url}
+                                alt={performance.artist.name}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shadow-md"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-electric-500/10 to-transparent rounded-2xl pointer-events-none" />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                              <Music className="w-9 h-9 sm:w-10 sm:h-10 text-cyan-400/50" />
                             </div>
                           )}
-                        </div>
 
-                        {performance.artist.photo_url ? (
-                          <div className="relative">
-                            <img
-                              src={performance.artist.photo_url}
-                              alt={performance.artist.name}
-                              className="w-20 h-20 rounded-2xl object-cover shadow-md"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-electric-500/10 to-transparent rounded-2xl pointer-events-none" />
-                          </div>
-                        ) : (
-                          <div className="w-20 h-20 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 rounded-2xl flex items-center justify-center">
-                            <Music className="w-10 h-10 text-cyan-400/50" />
-                          </div>
-                        )}
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h4 className="text-white">{performance.artist.name}</h4>
-                            {performance.advanced_to_final && round.round_type === 'preliminary' && (
-                              <span className="text-xs px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 flex items-center gap-1 font-bold uppercase">
-                                <Trophy className="w-3 h-3" />
-                                Finalist
-                              </span>
-                            )}
-                            {index === 0 && round.round_type === 'final' && (
-                              <span className="text-xs px-3 py-1 bg-gradient-to-r from-electric-500/30 to-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/50 flex items-center gap-1 font-bold shadow-glow-sm uppercase">
-                                <Crown className="w-3 h-3" />
-                                Winner
-                              </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h4 className="text-white text-base sm:text-lg leading-tight break-words">
+                                {performance.artist.name}
+                              </h4>
+                              {performance.advanced_to_final && round.round_type === 'preliminary' && (
+                                <span className="text-xs px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 flex items-center gap-1 font-bold uppercase">
+                                  <Trophy className="w-3 h-3" />
+                                  Finalist
+                                </span>
+                              )}
+                              {index === 0 && round.round_type === 'final' && (
+                                <span className="text-xs px-3 py-1 bg-gradient-to-r from-electric-500/30 to-cyan-500/30 text-cyan-300 rounded-lg border border-cyan-500/50 flex items-center gap-1 font-bold shadow-glow-sm uppercase">
+                                  <Crown className="w-3 h-3" />
+                                  Winner
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-cyan-400 font-semibold text-sm sm:text-base leading-snug break-words">"{performance.song_title}"</p>
+                            {performance.artist.city && (
+                              <p className="text-sm text-gray-400">{performance.artist.city}</p>
                             )}
                           </div>
-                          <p className="text-cyan-400 font-semibold mb-1 truncate">"{performance.song_title}"</p>
-                          {performance.artist.city && (
-                            <p className="text-sm text-gray-400">{performance.artist.city}</p>
-                          )}
                         </div>
 
-                        <div className="flex-shrink-0">
-                          <div className="min-w-[112px] px-5 py-3.5 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.05] to-white/[0.02] text-center flex flex-col items-center justify-center">
-                            <div className="font-display text-3xl font-bold leading-none text-gradient-electric">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="inline-flex h-10 items-center gap-2 px-3 rounded-2xl border border-white/15 bg-white/[0.03]">
+                            {getRankIcon(index, round.round_type) || (
+                              <span className="text-sm font-bold text-gray-400">#{index + 1}</span>
+                            )}
+                            <span className="text-xs font-bold tracking-wide text-gray-200">
+                              {index === 0 ? '1. Platz' : index === 1 ? '2. Platz' : index === 2 ? '3. Platz' : `${index + 1}. Platz`}
+                            </span>
+                          </div>
+
+                          <div className="inline-flex h-10 items-center justify-center gap-2 px-3 rounded-2xl border border-white/15 bg-white/[0.03]">
+                            <span className="font-display text-2xl font-bold leading-none text-gradient-electric">
                               {performance.total_votes}
-                            </div>
-                            <div className="mt-1 text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+                            </span>
+                            <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider leading-none">
                               Punkte
-                            </div>
+                            </span>
                           </div>
                         </div>
                       </div>

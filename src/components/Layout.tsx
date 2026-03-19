@@ -183,6 +183,16 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               </div>
             </div>
 
+            <div className="flex-1 flex justify-center lg:hidden px-2">
+              <button
+                onClick={() => handleNavigate('home')}
+                className="font-display text-2xl font-bold text-gradient-electric truncate leading-none"
+                aria-label="Go to home"
+              >
+                Couch Slam
+              </button>
+            </div>
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowMobileMenu(true)}
