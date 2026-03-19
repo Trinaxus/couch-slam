@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Round, Performance, Artist } from '../lib/supabase';
 import { RoundEditor } from './RoundEditor';
 import { Play, Pause, CheckCircle, Trophy, Clock, Target, CreditCard as Edit2, StopCircle } from 'lucide-react';
@@ -26,7 +26,7 @@ export function RoundControl({
   performances,
   currentRoundId,
   currentPerformanceId,
-  votingOpen,
+  votingOpen: _votingOpen,
   onStartRound,
   onCompleteRound,
   onSetCurrentPerformance,
@@ -196,7 +196,7 @@ export function RoundControl({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-white">{perf.artist.name}</p>
-                          {perf.advanced_to_final && (
+                          {round.round_type === 'final' && perf.advanced_to_final && (
                             <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded border border-yellow-500/30 flex items-center gap-1">
                               <Trophy className="w-3 h-3" />
                               FINALIST

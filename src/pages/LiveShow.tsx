@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Event, Performance, Artist, ShowState, Vote, Round } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
 import { getYouTubeEmbedUrl } from '../lib/youtube';
 import { Star, Music, MapPin, Radio, Target, Trophy, Clock, ChevronDown, ChevronUp, CheckCircle2, PlayCircle, Clock3 } from 'lucide-react';
-import { YouTubePlayer } from '../components/YouTubePlayer';
 import { YouTubeBonusActions } from '../components/YouTubeBonusActions';
 
 type PerformanceWithArtist = Performance & { artist: Artist };
@@ -32,6 +31,7 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
   const eventsLiveUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/events_live.php` : '';
   const showStateGetUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/show_state_get.php` : '';
   const roundsGetUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/rounds_get.php` : '';
+  const roundsPublicListUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/rounds_public_list.php` : '';
   const performancesGetUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/performances_get.php` : '';
   const performancesPublicListUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/performances_public_list.php` : '';
 
@@ -102,10 +102,12 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
       const data = (json.show_state as ShowState | null) || null;
       setShowState(data);
 
-      if (data?.current_round_id) {
-        await loadCurrentRound(data.current_round_id);
+      const effectiveRoundId = data?.current_round_id || (await getEffectiveRoundIdForEvent(eventId));
+
+      if (effectiveRoundId) {
+        await loadCurrentRound(effectiveRoundId);
         if (user && liveEvent) {
-          await loadUserVote(liveEvent.id, data.current_round_id);
+          await loadUserVote(liveEvent.id, effectiveRoundId);
         }
       } else {
         setCurrentRound(null);
@@ -120,6 +122,29 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
       }
     } catch (error) {
       console.error('Error loading show state:', error);
+    }
+  };
+
+  const getEffectiveRoundIdForEvent = async (eventId: string): Promise<string | null> => {
+    try {
+      if (!roundsPublicListUrl) return null;
+
+      const url = `${roundsPublicListUrl}?event_id=${encodeURIComponent(eventId)}`;
+      const res = await fetch(url, { method: 'GET' });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok) return null;
+
+      const rounds = (Array.isArray(json.rounds) ? json.rounds : []) as Round[];
+      if (rounds.length === 0) return null;
+
+      const active = rounds.find((r) => String((r as any).status || '') === 'active');
+      if (active?.id) return active.id;
+
+      const byNumber = [...rounds].sort((a, b) => (a.round_number || 0) - (b.round_number || 0));
+      const last = byNumber[byNumber.length - 1];
+      return last?.id || null;
+    } catch (e) {
+      return null;
     }
   };
 
@@ -245,7 +270,8 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
       return;
     }
 
-    if (!liveEvent || !showState?.voting_open || !showState?.current_round_id) return;
+    const effectiveRoundId = showState?.current_round_id || currentRound?.id;
+    if (!liveEvent || !showState?.voting_open || !effectiveRoundId) return;
 
     setVoting(true);
     try {
@@ -278,7 +304,7 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
         },
         body: JSON.stringify({
           event_id: liveEvent.id,
-          round_id: showState.current_round_id,
+          round_id: effectiveRoundId,
           performance_id: performanceId,
           base_rating: baseRating,
           multiplier,
@@ -291,8 +317,8 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
         throw new Error(json?.error || 'Failed to vote');
       }
 
-      await loadUserVote(liveEvent.id, showState.current_round_id);
-      await loadRoundPerformances(showState.current_round_id);
+      await loadUserVote(liveEvent.id, effectiveRoundId);
+      await loadRoundPerformances(effectiveRoundId);
 
       if (multiplier > 1.0) {
         showSuccess(`Stimme erfolgreich abgegeben! Bonus: ${((multiplier - 1) * 100).toFixed(0)}%`);

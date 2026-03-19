@@ -23,7 +23,7 @@ type ApplicationWithArtist = Application & { artist: Artist };
 type PerformanceWithArtist = Performance & { artist: Artist };
 
 export function AdminPanel() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const { showSuccess, showError } = useToast();
   const [activeTab, setActiveTab] = useState<'events' | 'artists' | 'applications' | 'round-setup' | 'show-control' | 'users'>('events');
   const [artistManagementInitialEditId, setArtistManagementInitialEditId] = useState<string | null>(null);
@@ -33,6 +33,7 @@ export function AdminPanel() {
   const [performances, setPerformances] = useState<PerformanceWithArtist[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [showState, setShowState] = useState<ShowState | null>(null);
+  const [manualCurrentRoundId, setManualCurrentRoundId] = useState<string>('');
 
   const [selectedRoundSetupEvent, setSelectedRoundSetupEvent] = useState<Event | null>(null);
   const [roundSetupRounds, setRoundSetupRounds] = useState<Round[]>([]);
@@ -130,6 +131,53 @@ export function AdminPanel() {
       showError(e?.message || 'Fehler beim Laden der User');
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const handleSetCurrentRound = async (roundId: string, opts?: { activate?: boolean }) => {
+    if (!selectedEvent) return;
+
+    try {
+      if (!showStateUpsertUrlWithToken) {
+        showError('Missing VITE_SERVER_BASE_URL');
+        return;
+      }
+
+      if (opts?.activate) {
+        if (!roundsUpdateUrlWithToken) {
+          showError('Missing VITE_SERVER_BASE_URL');
+          return;
+        }
+
+        const roundRes = await fetch(roundsUpdateUrlWithToken, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ id: roundId, status: 'active', started_at: new Date().toISOString() }),
+        });
+        const roundJson = (await roundRes.json()) as any;
+        if (!roundRes.ok || !roundJson?.ok) throw new Error(roundJson?.error || 'Failed to activate round');
+      }
+
+      const ssRes = await fetch(showStateUpsertUrlWithToken, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ event_id: selectedEvent.id, current_round_id: roundId, current_performance_id: null }),
+      });
+      const ssJson = (await ssRes.json()) as any;
+      if (!ssRes.ok || !ssJson?.ok) throw new Error(ssJson?.error || 'Failed to update show state');
+
+      await loadRounds(selectedEvent.id);
+      await loadShowState(selectedEvent.id);
+      showSuccess(opts?.activate ? 'Runde aktiviert und als Current gesetzt.' : 'Current Round gesetzt.');
+    } catch (error: any) {
+      console.error('Error setting current round:', error);
+      showError(error.message || 'Fehler beim Setzen der Runde');
     }
   };
 
@@ -320,6 +368,18 @@ export function AdminPanel() {
       void loadArtistRequests();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'show-control') return;
+    const desired = String(showState?.current_round_id || '');
+    if (desired) {
+      setManualCurrentRoundId(desired);
+      return;
+    }
+    if (!manualCurrentRoundId && rounds.length > 0) {
+      setManualCurrentRoundId(String(rounds[0].id));
+    }
+  }, [activeTab, showState?.current_round_id, rounds.length]);
 
   const loadArtistRequests = async () => {
     if (!artistRequestsCountUrlWithToken || !artistRequestsListUrlWithToken) {
@@ -1184,8 +1244,28 @@ export function AdminPanel() {
             </div>
           </div>
 
-          {renderUsersTable('Audience', users.filter((u) => String(u.user_type || 'audience') !== 'artist'))}
-          {renderUsersTable('Artist', users.filter((u) => String(u.user_type || 'audience') === 'artist'))}
+          {renderUsersTable(
+            'Admins',
+            users.filter((u) => String(u.access_role || 'user') === 'admin')
+          )}
+
+          {renderUsersTable(
+            'User',
+            users.filter(
+              (u) =>
+                String(u.access_role || 'user') !== 'admin' &&
+                String(u.user_type || 'audience') !== 'artist'
+            )
+          )}
+
+          {renderUsersTable(
+            'Artists',
+            users.filter(
+              (u) =>
+                String(u.access_role || 'user') !== 'admin' &&
+                String(u.user_type || 'audience') === 'artist'
+            )
+          )}
         </div>
       )}
 
@@ -1342,6 +1422,46 @@ export function AdminPanel() {
                     </div>
                   )}
                 </div>
+
+                {rounds.length > 0 && (
+                  <div className="mt-5 flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Current Round manuell setzen</label>
+                      <select
+                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                        value={manualCurrentRoundId || ''}
+                        onChange={(e) => setManualCurrentRoundId(e.target.value)}
+                      >
+                        {rounds
+                          .slice()
+                          .sort((a, b) => a.round_number - b.round_number)
+                          .map((r) => (
+                            <option key={r.id} value={r.id}>
+                              Round {r.round_number} ({r.status})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => manualCurrentRoundId && void handleSetCurrentRound(manualCurrentRoundId)}
+                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold transition-all"
+                      disabled={!manualCurrentRoundId}
+                      title="Setzt nur show_state.current_round_id (ohne Status-Änderung)"
+                    >
+                      Set Current
+                    </button>
+
+                    <button
+                      onClick={() => manualCurrentRoundId && void handleSetCurrentRound(manualCurrentRoundId, { activate: true })}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-semibold transition-all"
+                      disabled={!manualCurrentRoundId}
+                      title="Setzt Runde auf ACTIVE (falls nötig) und setzt sie als Current Round"
+                    >
+                      Activate + Set Current
+                    </button>
+                  </div>
+                )}
               </div>
 
               {rounds.length === 0 ? (

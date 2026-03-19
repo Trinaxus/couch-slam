@@ -30,6 +30,9 @@ export function ArtistDashboard() {
     city: '',
     genre: '',
     photo_url: '',
+    photo_fit: 'cover' as 'cover' | 'contain' | 'fill',
+    photo_pos_x: 50,
+    photo_pos_y: 50,
     instagram: '',
     youtube: '',
     spotify: '',
@@ -84,6 +87,9 @@ export function ArtistDashboard() {
           city: data.city || '',
           genre: data.genre || '',
           photo_url: data.photo_url || '',
+          photo_fit: (data.photo_fit as any) || 'cover',
+          photo_pos_x: typeof data.photo_pos_x === 'number' ? data.photo_pos_x : 50,
+          photo_pos_y: typeof data.photo_pos_y === 'number' ? data.photo_pos_y : 50,
           instagram: data.instagram || '',
           youtube: data.youtube || '',
           spotify: data.spotify || '',
@@ -235,6 +241,18 @@ export function ArtistDashboard() {
     }
   };
 
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+  const setPhotoFocusFromClientPoint = (clientX: number, clientY: number, rect: DOMRect) => {
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    setFormData((prev) => ({
+      ...prev,
+      photo_pos_x: Math.round(clamp(x, 0, 100)),
+      photo_pos_y: Math.round(clamp(y, 0, 100)),
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -245,9 +263,36 @@ export function ArtistDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Artist Dashboard</h1>
-        <p className="text-gray-400">Manage your profile and applications</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Artist Dashboard</h1>
+          <p className="text-gray-400">Manage your profile and applications</p>
+        </div>
+
+        <div className="hidden sm:block">
+          <div className="w-20 h-20 rounded-2xl border border-gray-700 bg-gray-900 overflow-hidden">
+            {formData.photo_url ? (
+              <img
+                src={formData.photo_url}
+                alt="Artist cover"
+                className={`w-full h-full ${
+                  formData.photo_fit === 'cover'
+                    ? 'object-cover'
+                    : formData.photo_fit === 'contain'
+                      ? 'object-contain'
+                      : 'object-fill'
+                } object-center`}
+                style={{ objectPosition: `${formData.photo_pos_x}% ${formData.photo_pos_y}%` }}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-600">
+                <Music className="w-8 h-8" />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex gap-2 border-b border-gray-700">
@@ -333,6 +378,123 @@ export function ArtistDashboard() {
                 onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Photo Anzeige
+              </label>
+              <select
+                value={formData.photo_fit}
+                onChange={(e) => setFormData({ ...formData, photo_fit: e.target.value as any })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="cover">Zuschneiden (Cover)</option>
+                <option value="contain">Einpassen (Contain)</option>
+                <option value="fill">Strecken (Fill)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-gray-900/40 rounded-lg border border-gray-700 p-4">
+            <p className="text-sm text-gray-300 font-medium mb-3">Vorschau</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-2">1:1 Ausschnitt (Klick/Tap setzt Fokuspunkt)</p>
+                <div
+                  className="w-full aspect-square rounded-xl border border-gray-700 bg-gray-900 overflow-hidden cursor-crosshair select-none"
+                  onMouseDown={(e) => {
+                    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    setPhotoFocusFromClientPoint(e.clientX, e.clientY, rect);
+                  }}
+                  onTouchStart={(e) => {
+                    const t = e.touches[0];
+                    if (!t) return;
+                    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    setPhotoFocusFromClientPoint(t.clientX, t.clientY, rect);
+                  }}
+                  title="Klicke auf den Bereich, der im Quadrat sichtbar sein soll"
+                >
+                  {formData.photo_url ? (
+                    <img
+                      src={formData.photo_url}
+                      alt="Artist cover crop preview"
+                      className={`w-full h-full ${
+                        formData.photo_fit === 'cover'
+                          ? 'object-cover'
+                          : formData.photo_fit === 'contain'
+                            ? 'object-contain'
+                            : 'object-fill'
+                      }`}
+                      style={{ objectPosition: `${formData.photo_pos_x}% ${formData.photo_pos_y}%` }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-600">
+                      <Music className="w-10 h-10" />
+                    </div>
+                  )}
+
+                  <div className="pointer-events-none absolute inset-0" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Feinjustierung Fokuspunkt</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Horizontal (X): {formData.photo_pos_x}%</label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={formData.photo_pos_x}
+                        onChange={(e) => setFormData({ ...formData, photo_pos_x: Number(e.target.value) })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Vertikal (Y): {formData.photo_pos_y}%</label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={formData.photo_pos_y}
+                        onChange={(e) => setFormData({ ...formData, photo_pos_y: Number(e.target.value) })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Original-Preview</p>
+                  <div className="w-full h-40 rounded-xl border border-gray-700 bg-gray-900 overflow-hidden">
+                    {formData.photo_url ? (
+                      <img
+                        src={formData.photo_url}
+                        alt="Artist cover preview"
+                        className={`w-full h-full ${
+                          formData.photo_fit === 'cover'
+                            ? 'object-cover'
+                            : formData.photo_fit === 'contain'
+                              ? 'object-contain'
+                              : 'object-fill'
+                        }`}
+                        style={{ objectPosition: `${formData.photo_pos_x}% ${formData.photo_pos_y}%` }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-600">
+                        <Music className="w-10 h-10" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

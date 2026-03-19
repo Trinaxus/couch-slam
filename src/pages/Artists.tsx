@@ -10,6 +10,18 @@ interface ArtistWithEvents extends Artist {
   }[];
 }
 
+const getObjectFitClass = (fit?: any) => {
+  if (fit === 'contain') return 'object-contain';
+  if (fit === 'fill') return 'object-fill';
+  return 'object-cover';
+};
+
+const getObjectPositionStyle = (artist: any) => {
+  const x = typeof artist?.photo_pos_x === 'number' ? artist.photo_pos_x : 50;
+  const y = typeof artist?.photo_pos_y === 'number' ? artist.photo_pos_y : 50;
+  return { objectPosition: `${x}% ${y}%` } as React.CSSProperties;
+};
+
 export function Artists() {
   const { t } = useLanguage();
   const [artists, setArtists] = useState<ArtistWithEvents[]>([]);
@@ -112,7 +124,8 @@ export function Artists() {
                   <img
                     src={artist.photo_url}
                     alt={artist.name}
-                    className="w-full h-56 object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    className={`w-full h-56 ${getObjectFitClass((artist as any).photo_fit)} transform group-hover:scale-110 transition-transform duration-700`}
+                    style={getObjectPositionStyle(artist)}
                   />
                 ) : (
                   <div className="w-full h-56 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 flex items-center justify-center">
@@ -242,7 +255,8 @@ export function Artists() {
                     <img
                       src={selectedArtist.photo_url}
                       alt={selectedArtist.name}
-                      className="w-full md:w-64 h-64 object-cover rounded-xl shadow-glow-md"
+                      className={`w-full md:w-64 h-64 ${getObjectFitClass((selectedArtist as any).photo_fit)} rounded-xl shadow-glow-md`}
+                      style={getObjectPositionStyle(selectedArtist)}
                     />
                   ) : (
                     <div className="w-full md:w-64 h-64 bg-gradient-to-br from-electric-500/30 via-cyan-500/20 to-neon-600/30 flex items-center justify-center rounded-xl shadow-glow-md">

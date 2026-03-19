@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Trophy, Settings, LogOut, User, Radio, LayoutDashboard, Languages, Home, Maximize2, Minimize2 } from 'lucide-react';
+import { Users, Trophy, Settings, LogOut, User, Radio, LayoutDashboard, Languages, Home, Maximize2, Minimize2, Menu, X } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canFullscreen, setCanFullscreen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const [dbOk, setDbOk] = useState<boolean | null>(null);
   const serverBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) || '';
@@ -81,12 +82,28 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
     return () => document.removeEventListener('mousedown', onDoc);
   }, [showSettingsMenu]);
 
+  useEffect(() => {
+    if (!showMobileMenu) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowMobileMenu(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showMobileMenu]);
+
   const handleSignOut = async () => {
     try {
       await signOut();
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleNavigate = (page: string) => {
+    setShowMobileMenu(false);
+    setShowSettingsMenu(false);
+    onNavigate(page);
   };
 
   const toggleLanguage = () => {
@@ -135,7 +152,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-8">
               <button
-                onClick={() => onNavigate('home')}
+                onClick={() => handleNavigate('home')}
                 className="flex items-center gap-3 group"
               >
                 <img
@@ -143,7 +160,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                   alt="Couch Slam Logo"
                   className="w-12 h-12 object-contain transform group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
                 />
-                <span className="font-display text-2xl font-bold text-gradient-electric">
+                <span className="hidden sm:inline font-display text-2xl font-bold text-gradient-electric">
                   Couch Slam
                 </span>
               </button>
@@ -152,7 +169,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                 {getNavItems().map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => onNavigate(item.id)}
+                    onClick={() => handleNavigate(item.id)}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
                       currentPage === item.id
                         ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/20 text-cyan-400 border border-cyan-500/30'
@@ -167,6 +184,14 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowMobileMenu(true)}
+                className="lg:hidden p-3 glass rounded-xl text-gray-300 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300 border border-white/10"
+                title="Menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
               {user && profile ? (
                 <>
                   <div className="hidden sm:flex glass px-4 py-2.5 rounded-xl border border-white/10">
@@ -293,25 +318,158 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               </div>
             </div>
           </div>
-
-          <div className="lg:hidden flex items-center gap-2 pb-4 overflow-x-auto scrollbar-hide">
-            {getNavItems().map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
-                  currentPage === item.id
-                    ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/20 text-cyan-400 border border-cyan-500/30'
-                    : 'text-gray-300 glass border border-white/10 hover:text-cyan-300'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            ))}
-          </div>
         </div>
       </nav>
+
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <button
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowMobileMenu(false)}
+            aria-label="Close menu"
+          />
+
+          <div className="absolute top-0 left-0 right-0 glass-dark border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/TB_W_02_LOGO.png"
+                    alt="Couch Slam Logo"
+                    className="w-10 h-10 object-contain"
+                  />
+                  <div className="text-white font-semibold">Couch Slam</div>
+                </div>
+
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="p-3 glass rounded-xl text-gray-300 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300 border border-white/10"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {user && profile && (
+                <div className="mt-4 glass px-4 py-3 rounded-xl border border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
+                      <User className="w-5 h-5 text-slate-950" />
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-white font-semibold leading-tight">{profile.display_name}</div>
+                      <div className="text-cyan-400 capitalize text-xs font-medium leading-tight">{profile.access_role}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 grid gap-2">
+                {getNavItems().map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 border ${
+                      currentPage === item.id
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-electric-500/20 text-cyan-400 border-cyan-500/30'
+                        : 'text-gray-200 hover:bg-white/5 border-white/10'
+                    }`}
+                  >
+                    <item.icon className="w-4.5 h-4.5" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 border-t border-white/10 pt-3 grid gap-2">
+                <button
+                  onClick={() => {
+                    toggleLanguage();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <Languages className="w-4.5 h-4.5 text-gray-300" />
+                    <span className="text-sm font-semibold text-white">Sprache</span>
+                  </div>
+                  <span className="text-xs font-bold uppercase text-cyan-400">{language.toUpperCase()}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    void toggleFullscreen();
+                    setShowMobileMenu(false);
+                  }}
+                  disabled={!canFullscreen}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center gap-3">
+                    {isFullscreen ? (
+                      <Minimize2 className="w-4.5 h-4.5 text-gray-300" />
+                    ) : (
+                      <Maximize2 className="w-4.5 h-4.5 text-gray-300" />
+                    )}
+                    <span className="text-sm font-semibold text-white">Fullscreen</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-400">{isFullscreen ? 'On' : 'Off'}</span>
+                </button>
+
+                {profile?.access_role === 'admin' && (
+                  <div
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/10"
+                    title={
+                      dbOk === null
+                        ? 'DB Status: unknown'
+                        : dbOk
+                          ? 'DB Status: live'
+                          : 'DB Status: offline'
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          dbOk === null ? 'bg-gray-500' : dbOk ? 'bg-green-400' : 'bg-red-400'
+                        }`}
+                      />
+                      <span className="text-sm font-semibold text-white">Datenbank</span>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-400">{dbOk === null ? 'Unknown' : dbOk ? 'Live' : 'Offline'}</span>
+                  </div>
+                )}
+
+                {user && profile ? (
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      void handleSignOut();
+                    }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LogOut className="w-4.5 h-4.5 text-gray-300" />
+                      <span className="text-sm font-semibold text-white">{t.nav.signOut}</span>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      onShowAuth();
+                    }}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all border border-white/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      <User className="w-4.5 h-4.5 text-gray-300" />
+                      <span className="text-sm font-semibold text-white">{t.nav.signIn}</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {children}
