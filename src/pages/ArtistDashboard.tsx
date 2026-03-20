@@ -11,6 +11,7 @@ export function ArtistDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'apply' | 'applications'>('profile');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [applyExistingApplicationId, setApplyExistingApplicationId] = useState<string | null>(null);
   const [submittingApplication, setSubmittingApplication] = useState(false);
 
@@ -21,6 +22,8 @@ export function ArtistDashboard() {
   const applicationsMeListUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/applications_me_list.php` : '';
   const applicationsMeSubmitUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/applications_me_submit.php` : '';
   const applicationsMeUpdateUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/applications_me_update.php` : '';
+  const uploadsMeImageUploadUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/uploads_me_image_upload.php` : '';
+  const uploadsMeImageDeleteUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/uploads_me_image_delete.php` : '';
 
   const artistMeGetUrlWithToken = artistMeGetUrl && token ? `${artistMeGetUrl}?token=${encodeURIComponent(token)}` : artistMeGetUrl;
   const artistMeUpsertUrlWithToken = artistMeUpsertUrl && token ? `${artistMeUpsertUrl}?token=${encodeURIComponent(token)}` : artistMeUpsertUrl;
@@ -36,6 +39,7 @@ export function ArtistDashboard() {
     bio: '',
     city: '',
     genre: '',
+    avatar_url: '',
     photo_url: '',
     photo_fit: 'cover' as 'cover' | 'contain' | 'fill',
     photo_pos_x: 50,
@@ -46,6 +50,13 @@ export function ArtistDashboard() {
     website: '',
     media_url: '',
   });
+
+  const [initialFormData, setInitialFormData] = useState<typeof formData | null>(null);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [applicationForm, setApplicationForm] = useState({
     event_id: '',
@@ -76,20 +87,26 @@ export function ArtistDashboard() {
   }, [applicationForm.event_id, applications]);
 
   useEffect(() => {
-    if (user) {
-      void loadArtistProfile();
-      void loadEvents();
-    }
-  }, [user?.id]);
+    if (!user) return;
+
+    // Events are public; artist profile requires auth token.
+    void loadEvents();
+
+    if (!token) return;
+    setLoading(true);
+    void loadArtistProfile();
+  }, [user?.id, token]);
 
   useEffect(() => {
     if (!user) return;
+    if (!token) return;
+
     if (!artist) {
       setApplications([]);
       return;
     }
     void loadApplications();
-  }, [user?.id, artist?.id]);
+  }, [user?.id, artist?.id, token]);
 
   const loadArtistProfile = async () => {
     try {
@@ -109,11 +126,12 @@ export function ArtistDashboard() {
       const data = json.artist as any;
       if (data) {
         setArtist(data as Artist);
-        setFormData({
+        const next = {
           name: data.name || '',
           bio: data.bio || '',
           city: data.city || '',
           genre: data.genre || '',
+          avatar_url: data.avatar_url || '',
           photo_url: data.photo_url || '',
           photo_fit: (data.photo_fit as any) || 'cover',
           photo_pos_x: typeof data.photo_pos_x === 'number' ? data.photo_pos_x : 50,
@@ -123,7 +141,10 @@ export function ArtistDashboard() {
           spotify: data.spotify || '',
           website: data.website || '',
           media_url: data.media_url || '',
-        });
+        };
+        setFormData(next);
+        setInitialFormData(next);
+        setIsEditingProfile(false);
       } else {
         setArtist(null);
       }
@@ -132,6 +153,53 @@ export function ArtistDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const uploadImage = async (purpose: 'artist_photo' | 'artist_cover', file: File) => {
+    if (!uploadsMeImageUploadUrl) {
+      throw new Error('Missing VITE_SERVER_BASE_URL');
+    }
+    if (!token) {
+      throw new Error('Missing token');
+    }
+
+    const fd = new FormData();
+    fd.append('purpose', purpose);
+    fd.append('replace', '1');
+    fd.append('file', file);
+
+    const res = await fetch(uploadsMeImageUploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: fd,
+    });
+    const json = (await res.json()) as any;
+    if (!res.ok || !json?.ok) throw new Error(json?.error || 'Upload failed');
+    const url = (json?.url as string | null) ?? null;
+    if (!url) throw new Error('Upload did not return a public URL');
+    return url;
+  };
+
+  const deleteImage = async (purpose: 'artist_photo' | 'artist_cover') => {
+    if (!uploadsMeImageDeleteUrl) {
+      throw new Error('Missing VITE_SERVER_BASE_URL');
+    }
+    if (!token) {
+      throw new Error('Missing token');
+    }
+
+    const res = await fetch(uploadsMeImageDeleteUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ purpose }),
+    });
+    const json = (await res.json()) as any;
+    if (!res.ok || !json?.ok) throw new Error(json?.error || 'Delete failed');
   };
 
   const loadEvents = async () => {
@@ -220,8 +288,11 @@ export function ArtistDashboard() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    await saveProfile(formData);
+  };
 
+  const saveProfile = async (next: typeof formData) => {
+    setSaving(true);
     try {
       if (!artistMeUpsertUrlWithToken) {
         throw new Error('Missing VITE_SERVER_BASE_URL');
@@ -233,16 +304,16 @@ export function ArtistDashboard() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(next),
       });
       const json = (await res.json()) as any;
       if (!res.ok || !json?.ok) throw new Error(json?.error || 'Failed to save profile');
 
-      alert('Profile saved successfully!');
       await loadArtistProfile();
     } catch (error: any) {
       console.error('Error saving profile:', error);
       alert(error.message || 'Failed to save profile');
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -349,6 +420,13 @@ export function ArtistDashboard() {
 
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
+  const normalizeUrl = (raw: string) => {
+    const v = (raw || '').trim();
+    if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    return `https://${v}`;
+  };
+
   const setPhotoFocusFromClientPoint = (clientX: number, clientY: number, rect: DOMRect) => {
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
@@ -435,8 +513,156 @@ export function ArtistDashboard() {
       </div>
 
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="bg-gray-800 rounded-lg p-6 border border-gray-700 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+        <>
+          {!isEditingProfile ? (
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="relative group shrink-0">
+                    <div className="w-12 h-12 rounded-full border border-gray-700 bg-gray-900 overflow-hidden">
+                      {formData.avatar_url ? (
+                        <img
+                          src={formData.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-600">
+                          <Music className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
+
+                    {formData.avatar_url ? (
+                      <div className="pointer-events-none absolute left-0 top-full mt-2 hidden group-hover:block z-50">
+                        <div className="w-64 h-64 min-w-64 min-h-64 rounded-full border border-gray-700 bg-gray-900 shadow-2xl overflow-hidden">
+                          <img
+                            src={formData.avatar_url}
+                            alt=""
+                            className="w-full h-full object-cover rounded-full"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-white font-semibold text-lg">{artist?.name || '—'}</div>
+                    <div className="text-gray-400 text-sm">{artist?.city || '—'}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+
+                  <div className="w-16 h-12 rounded-lg border border-gray-700 bg-gray-900 overflow-hidden">
+                    {formData.photo_url ? (
+                      <img
+                        src={formData.photo_url}
+                        alt=""
+                        className={`w-full h-full ${
+                          formData.photo_fit === 'cover'
+                            ? 'object-cover'
+                            : formData.photo_fit === 'contain'
+                              ? 'object-contain'
+                              : 'object-fill'
+                        }`}
+                        style={{ objectPosition: `${formData.photo_pos_x}% ${formData.photo_pos_y}%` }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-600">
+                        <Music className="w-5 h-5" />
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(true)}
+                    className="bg-gray-900 border border-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition-all"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {artist?.genre ? (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-200 border border-cyan-500/20">
+                    {artist.genre}
+                  </span>
+                ) : null}
+
+                {artist?.website ? (
+                  <a
+                    href={normalizeUrl(artist.website)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-200 border border-white/10 hover:bg-white/10 transition"
+                  >
+                    Website
+                  </a>
+                ) : null}
+
+                {artist?.instagram ? (
+                  <a
+                    href={normalizeUrl(`instagram.com/${artist.instagram.replace(/^@/, '')}`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-200 border border-white/10 hover:bg-white/10 transition"
+                  >
+                    Instagram
+                  </a>
+                ) : null}
+
+                {artist?.youtube ? (
+                  <a
+                    href={normalizeUrl(artist.youtube)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-200 border border-white/10 hover:bg-white/10 transition"
+                  >
+                    YouTube
+                  </a>
+                ) : null}
+
+                {artist?.spotify ? (
+                  <a
+                    href={normalizeUrl(artist.spotify)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-200 border border-white/10 hover:bg-white/10 transition"
+                  >
+                    Spotify
+                  </a>
+                ) : null}
+
+                {artist?.media_url ? (
+                  <a
+                    href={normalizeUrl(artist.media_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-200 border border-white/10 hover:bg-white/10 transition"
+                  >
+                    Media
+                  </a>
+                ) : null}
+              </div>
+
+              {artist?.bio ? (
+                <div className="mt-4 text-gray-300 whitespace-pre-wrap">{artist.bio}</div>
+              ) : (
+                <div className="mt-4 text-gray-500">Keine Bio gesetzt.</div>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSaveProfile} className="bg-gray-800 rounded-lg p-6 border border-gray-700 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Artist/Band Name *
@@ -475,6 +701,86 @@ export function ArtistDashboard() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Profilbild URL (1:1)</label>
+              <input
+                type="url"
+                value={formData.avatar_url}
+                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                  className="text-sm text-gray-300"
+                />
+                <button
+                  type="button"
+                  disabled={!avatarFile || uploadingAvatar}
+                  onClick={async () => {
+                    if (!avatarFile) return;
+                    try {
+                      setUploadingAvatar(true);
+                      const url = await uploadImage('artist_photo', avatarFile);
+                      const next = { ...formData, avatar_url: url };
+                      setFormData(next);
+                      setAvatarFile(null);
+                      await saveProfile(next);
+                    } catch (err: any) {
+                      console.error(err);
+                      alert(err?.message || 'Upload failed');
+                    } finally {
+                      setUploadingAvatar(false);
+                    }
+                  }}
+                  className="bg-gray-900 border border-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50"
+                >
+                  {uploadingAvatar ? 'Uploading...' : 'Upload Profilbild'}
+                </button>
+                <button
+                  type="button"
+                  disabled={uploadingAvatar || uploadingCover || !formData.avatar_url}
+                  onClick={async () => {
+                    try {
+                      setUploadingAvatar(true);
+                      await deleteImage('artist_photo');
+                      const next = { ...formData, avatar_url: '' };
+                      setFormData(next);
+                      await saveProfile(next);
+                    } catch (err: any) {
+                      console.error(err);
+                      alert(err?.message || 'Delete failed');
+                    } finally {
+                      setUploadingAvatar(false);
+                    }
+                  }}
+                  className="bg-red-600/20 border border-red-500/30 text-red-200 font-semibold py-2 px-4 rounded-lg hover:bg-red-600/30 transition-all disabled:opacity-50"
+                >
+                  Delete Profilbild
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <div className="w-20 h-20 rounded-full border border-gray-700 bg-gray-900 overflow-hidden">
+                  {formData.avatar_url ? (
+                    <img
+                      src={formData.avatar_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-600">
+                      <Music className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Photo URL
               </label>
@@ -484,6 +790,59 @@ export function ArtistDashboard() {
                 onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                  className="text-sm text-gray-300"
+                />
+                <button
+                  type="button"
+                  disabled={!coverFile || uploadingCover}
+                  onClick={async () => {
+                    if (!coverFile) return;
+                    try {
+                      setUploadingCover(true);
+                      const url = await uploadImage('artist_cover', coverFile);
+                      const next = { ...formData, photo_url: url };
+                      setFormData(next);
+                      setCoverFile(null);
+                      await saveProfile(next);
+                    } catch (err: any) {
+                      console.error(err);
+                      alert(err?.message || 'Upload failed');
+                    } finally {
+                      setUploadingCover(false);
+                    }
+                  }}
+                  className="bg-gray-900 border border-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50"
+                >
+                  {uploadingCover ? 'Uploading...' : 'Upload Cover'}
+                </button>
+                <button
+                  type="button"
+                  disabled={uploadingAvatar || uploadingCover || !formData.photo_url}
+                  onClick={async () => {
+                    try {
+                      setUploadingCover(true);
+                      await deleteImage('artist_cover');
+                      const next = { ...formData, photo_url: '' };
+                      setFormData(next);
+                      await saveProfile(next);
+                    } catch (err: any) {
+                      console.error(err);
+                      alert(err?.message || 'Delete failed');
+                    } finally {
+                      setUploadingCover(false);
+                    }
+                  }}
+                  className="bg-red-600/20 border border-red-500/30 text-red-200 font-semibold py-2 px-4 rounded-lg hover:bg-red-600/30 transition-all disabled:opacity-50"
+                >
+                  Delete Cover
+                </button>
+              </div>
             </div>
 
             <div>
@@ -679,15 +1038,35 @@ export function ArtistDashboard() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
-          >
-            <Save className="w-5 h-5" />
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </form>
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Save className="w-5 h-5" />
+                  {saving ? 'Saving...' : 'Save Profile'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={saving || uploadingAvatar || uploadingCover}
+                  onClick={() => {
+                    if (initialFormData) {
+                      setFormData(initialFormData);
+                    }
+                    setAvatarFile(null);
+                    setCoverFile(null);
+                    setIsEditingProfile(false);
+                  }}
+                  className="bg-gray-900 border border-gray-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </>
       )}
 
       {activeTab === 'apply' && (

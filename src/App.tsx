@@ -9,6 +9,7 @@ import { LiveShow } from './pages/LiveShow';
 import { Scoreboard } from './pages/Scoreboard';
 import { Artists } from './pages/Artists';
 import { ArtistDashboard } from './pages/ArtistDashboard';
+import { UserDashboard } from './pages/UserDashboard';
 import { AdminPanel } from './pages/AdminPanel';
 
 function getPageFromHash(): string {
@@ -30,6 +31,13 @@ function AppContent() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    const isProtected = currentPage === 'dashboard' || currentPage === 'admin';
+    if (!isProtected) return;
+    if (user && profile) return;
+    setShowAuthForm(true);
+  }, [currentPage, user, profile]);
 
   const handleNavigate = (page: string) => {
     window.location.hash = page;
@@ -70,13 +78,11 @@ function AppContent() {
         return <Artists />;
       case 'dashboard':
         if (!user || !profile) {
-          setShowAuthForm(true);
           return <Home onNavigate={handleNavigate} onShowAuth={() => setShowAuthForm(true)} />;
         }
-        return profile.user_type === 'artist' ? <ArtistDashboard /> : <Home onNavigate={handleNavigate} onShowAuth={() => setShowAuthForm(true)} />;
+        return profile.user_type === 'artist' ? <ArtistDashboard /> : <UserDashboard />;
       case 'admin':
         if (!user || !profile) {
-          setShowAuthForm(true);
           return <Home onNavigate={handleNavigate} onShowAuth={() => setShowAuthForm(true)} />;
         }
         return profile.access_role === 'admin' ? <AdminPanel /> : <Home onNavigate={handleNavigate} onShowAuth={() => setShowAuthForm(true)} />;

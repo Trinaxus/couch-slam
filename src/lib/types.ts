@@ -10,7 +10,11 @@ export interface Artist {
   bio: string;
   city: string;
   genre: string;
+  avatar_url?: string | null;
   photo_url: string;
+  photo_fit?: 'cover' | 'contain' | 'fill';
+  photo_pos_x?: number;
+  photo_pos_y?: number;
   instagram: string;
   youtube: string;
   spotify: string;

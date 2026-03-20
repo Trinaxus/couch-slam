@@ -14,6 +14,7 @@ interface Profile {
   access_role: AccessRole;
   user_type: UserType;
   display_name: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string, userType: UserType) => Promise<void>;
+  updateProfilePatch: (patch: Partial<Pick<Profile, 'display_name' | 'avatar_url'>>) => void;
   signOut: () => Promise<void>;
 }
 
@@ -38,6 +40,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const serverBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) || '';
   const loginUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/auth/login.php` : '';
   const registerUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/auth/register.php` : '';
+  const usersMeGetUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/users_me_get.php` : '';
+
+  const hydrateMe = async (nextToken: string, baseProfile: Profile) => {
+    try {
+      if (!usersMeGetUrl || !nextToken) return baseProfile;
+      const res = await fetch(`${usersMeGetUrl}?token=${encodeURIComponent(nextToken)}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${nextToken}`,
+        },
+      });
+      const json = (await res.json()) as any;
+      if (!res.ok || !json?.ok || !json?.user) return baseProfile;
+      const u = json.user as any;
+      return {
+        ...baseProfile,
+        avatar_url: (u.avatar_url as string | null) ?? null,
+      };
+    } catch {
+      return baseProfile;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -52,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             access_role: (p.access_role as AccessRole) || 'user',
             user_type: (p.user_type as UserType) || 'audience',
             display_name: (p.display_name as string | null) ?? null,
+            avatar_url: (p.avatar_url as string | null) ?? null,
           };
 
           setUser(parsed.user as ServerUser);
@@ -105,11 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setUser(newUser);
-    setProfile(newProfile);
     const newToken = String(data?.token || '');
     setToken(newToken);
 
-    localStorage.setItem(storageKey, JSON.stringify({ user: newUser, profile: newProfile, token: newToken }));
+    const hydrated = await hydrateMe(newToken, newProfile);
+    setProfile(hydrated);
+    localStorage.setItem(storageKey, JSON.stringify({ user: newUser, profile: hydrated, token: newToken }));
   };
 
   const signUp = async (email: string, password: string, displayName: string, userType: UserType) => {
@@ -144,12 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     setUser(newUser);
-    setProfile(newProfile);
-
     const newToken = String(data?.token || '');
     setToken(newToken);
 
-    localStorage.setItem(storageKey, JSON.stringify({ user: newUser, profile: newProfile, token: newToken }));
+    const hydrated = await hydrateMe(newToken, newProfile);
+    setProfile(hydrated);
+    localStorage.setItem(storageKey, JSON.stringify({ user: newUser, profile: hydrated, token: newToken }));
   };
 
   const signOut = async () => {
@@ -159,8 +185,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken('');
   };
 
+  const updateProfilePatch = (patch: Partial<Pick<Profile, 'display_name' | 'avatar_url'>>) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as any;
+          localStorage.setItem(storageKey, JSON.stringify({ user: parsed.user ?? user, profile: next, token: parsed.token ?? token }));
+        } else {
+          localStorage.setItem(storageKey, JSON.stringify({ user, profile: next, token }));
+        }
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, token, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, profile, token, loading, signIn, signUp, updateProfilePatch, signOut }}>
       {children}
     </AuthContext.Provider>
   );

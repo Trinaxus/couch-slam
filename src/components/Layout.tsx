@@ -11,17 +11,55 @@ interface LayoutProps {
 }
 
 export function Layout({ children, currentPage, onNavigate, onShowAuth }: LayoutProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, token, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
+
+  const userTypeLabel = profile?.user_type === 'artist' ? 'Artist' : 'Zuschauer';
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canFullscreen, setCanFullscreen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  const [artistCoverThumbUrl, setArtistCoverThumbUrl] = useState<string | null>(null);
+
   const [dbOk, setDbOk] = useState<boolean | null>(null);
   const serverBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) || '';
   const dbTestUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/db_test.php` : '';
+  const artistMeGetUrl = serverBaseUrl ? `${serverBaseUrl.replace(/\/$/, '')}/api/artist_me_get.php` : '';
+
+  useEffect(() => {
+    if (!user || !profile || profile.user_type !== 'artist') {
+      setArtistCoverThumbUrl(null);
+      return;
+    }
+    if (!artistMeGetUrl || !token) {
+      setArtistCoverThumbUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await fetch(`${artistMeGetUrl}?token=${encodeURIComponent(token)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const json = (await res.json()) as any;
+        const url = (json?.artist?.photo_url as string | null) ?? null;
+        if (!cancelled) setArtistCoverThumbUrl(url && String(url).trim() ? String(url) : null);
+      } catch {
+        if (!cancelled) setArtistCoverThumbUrl(null);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, profile?.user_type, artistMeGetUrl, token]);
 
   useEffect(() => {
     if (!user || profile?.access_role !== 'admin' || !dbTestUrl) {
@@ -132,7 +170,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
       { id: 'artists', label: t.nav.artists, icon: Users },
     ];
 
-    if (profile?.user_type === 'artist') {
+    if (profile) {
       items.push({ id: 'dashboard', label: t.nav.dashboard, icon: LayoutDashboard });
     }
 
@@ -206,12 +244,26 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                 <>
                   <div className="hidden sm:flex glass h-11 px-4 rounded-2xl border border-white/10">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
-                        <User className="w-4.5 h-4.5 text-slate-950" />
-                      </div>
+                      {artistCoverThumbUrl ? (
+                        <img
+                          src={artistCoverThumbUrl}
+                          alt=""
+                          className="w-9 h-9 rounded-full object-cover shadow-glow-sm border border-white/10"
+                        />
+                      ) : profile.avatar_url ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt=""
+                          className="w-9 h-9 rounded-full object-cover shadow-glow-sm border border-white/10"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
+                          <User className="w-4.5 h-4.5 text-slate-950" />
+                        </div>
+                      )}
                       <div className="text-sm">
                         <div className="text-white font-semibold leading-tight">{profile.display_name}</div>
-                        <div className="text-cyan-400 capitalize text-xs font-medium leading-tight">{profile.access_role}</div>
+                        <div className="text-cyan-400 text-xs font-medium leading-tight">{userTypeLabel}</div>
                       </div>
                     </div>
                   </div>
@@ -372,7 +424,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                     </div>
                     <div className="text-sm">
                       <div className="text-white font-semibold leading-tight">{profile.display_name}</div>
-                      <div className="text-cyan-400 capitalize text-xs font-medium leading-tight">{profile.access_role}</div>
+                      <div className="text-cyan-400 text-xs font-medium leading-tight">{userTypeLabel}</div>
                     </div>
                   </div>
                 </div>
