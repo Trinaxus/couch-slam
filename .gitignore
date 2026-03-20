@@ -22,8 +22,9 @@ dist-ssr
 *.sw?
 .env
 
-server/
+server/*
 !server/api/
+!server/api/*.php
 !server/api/artist_me_get.php
 !server/api/artist_me_upsert.php
 supabase/

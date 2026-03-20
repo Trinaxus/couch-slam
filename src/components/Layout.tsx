@@ -21,7 +21,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  const [artistCoverThumbUrl, setArtistCoverThumbUrl] = useState<string | null>(null);
+  const [artistAvatarThumbUrl, setArtistAvatarThumbUrl] = useState<string | null>(null);
 
   const [dbOk, setDbOk] = useState<boolean | null>(null);
   const serverBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) || '';
@@ -30,11 +30,11 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
 
   useEffect(() => {
     if (!user || !profile || profile.user_type !== 'artist') {
-      setArtistCoverThumbUrl(null);
+      setArtistAvatarThumbUrl(null);
       return;
     }
     if (!artistMeGetUrl || !token) {
-      setArtistCoverThumbUrl(null);
+      setArtistAvatarThumbUrl(null);
       return;
     }
 
@@ -48,10 +48,10 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
           },
         });
         const json = (await res.json()) as any;
-        const url = (json?.artist?.photo_url as string | null) ?? null;
-        if (!cancelled) setArtistCoverThumbUrl(url && String(url).trim() ? String(url) : null);
+        const url = (json?.artist?.avatar_url as string | null) ?? null;
+        if (!cancelled) setArtistAvatarThumbUrl(url && String(url).trim() ? String(url) : null);
       } catch {
-        if (!cancelled) setArtistCoverThumbUrl(null);
+        if (!cancelled) setArtistAvatarThumbUrl(null);
       }
     };
 
@@ -244,9 +244,9 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                 <>
                   <div className="hidden sm:flex glass h-11 px-4 rounded-2xl border border-white/10">
                     <div className="flex items-center gap-3">
-                      {artistCoverThumbUrl ? (
+                      {artistAvatarThumbUrl ? (
                         <img
-                          src={artistCoverThumbUrl}
+                          src={artistAvatarThumbUrl}
                           alt=""
                           className="w-9 h-9 rounded-full object-cover shadow-glow-sm border border-white/10"
                         />
