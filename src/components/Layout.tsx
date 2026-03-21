@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, Trophy, Settings, LogOut, User, Radio, LayoutDashboard, Languages, Home, Maximize2, Minimize2, Menu, X } from 'lucide-react';
+import { Users, Trophy, Settings, Shield, LogOut, User, Radio, LayoutDashboard, Languages, Home, Maximize2, Minimize2, Menu, X } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -174,10 +174,6 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
       items.push({ id: 'dashboard', label: t.nav.dashboard, icon: LayoutDashboard });
     }
 
-    if (profile?.access_role === 'admin') {
-      items.push({ id: 'admin', label: t.nav.admin, icon: Settings });
-    }
-
     return items;
   };
 
@@ -188,19 +184,16 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
       <nav className="glass-dark sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-8 min-w-0">
               <button
                 onClick={() => handleNavigate('home')}
-                className="flex items-center gap-3 group"
+                className="flex items-center group"
               >
                 <img
-                  src="/TB_W_02_LOGO.png"
-                  alt="Couch Slam Logo"
-                  className="w-12 h-12 object-contain transform group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
+                  src="/couch_slam_02.png"
+                  alt="Couch Slam"
+                  className="h-8 sm:h-9 md:h-10 w-auto object-contain transform group-hover:scale-[1.02] transition-all duration-300 drop-shadow-lg"
                 />
-                <span className="hidden sm:inline font-display text-2xl font-bold text-gradient-electric">
-                  Couch Slam
-                </span>
               </button>
 
               <div className="hidden lg:flex items-center gap-2">
@@ -215,20 +208,10 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                     }`}
                   >
                     <item.icon className="w-4.5 h-4.5" />
-                    {item.label}
+                    <span className="font-bold">{item.label}</span>
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="flex-1 flex justify-center lg:hidden px-2">
-              <button
-                onClick={() => handleNavigate('home')}
-                className="font-display text-2xl font-bold text-gradient-electric truncate leading-none"
-                aria-label="Go to home"
-              >
-                Couch Slam
-              </button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -299,6 +282,21 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                     </div>
 
                     <div className="p-2">
+                      {profile?.access_role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            handleNavigate('admin');
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all"
+                          title={t.nav.admin}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Shield className="w-4.5 h-4.5 text-gray-300" />
+                            <span className="text-sm font-semibold text-white">{t.nav.admin}</span>
+                          </div>
+                        </button>
+                      )}
+
                       <button
                         onClick={() => {
                           toggleLanguage();
@@ -398,13 +396,8 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
           <div className="absolute top-0 left-0 right-0 glass-dark border-b border-white/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/TB_W_02_LOGO.png"
-                    alt="Couch Slam Logo"
-                    className="w-10 h-10 object-contain"
-                  />
-                  <div className="text-white font-semibold">Couch Slam</div>
+                <div className="flex items-center">
+                  <img src="/couch_slam_02.png" alt="Couch Slam" className="h-9 w-auto object-contain" />
                 </div>
 
                 <button
@@ -419,9 +412,23 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               {user && profile && (
                 <div className="mt-4 glass h-11 px-4 rounded-2xl border border-white/10 flex items-center">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
-                      <User className="w-5 h-5 text-slate-950" />
-                    </div>
+                    {artistAvatarThumbUrl ? (
+                      <img
+                        src={artistAvatarThumbUrl}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover shadow-glow-sm border border-white/10"
+                      />
+                    ) : profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover shadow-glow-sm border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gradient-to-br from-electric-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-glow-sm">
+                        <User className="w-5 h-5 text-slate-950" />
+                      </div>
+                    )}
                     <div className="text-sm">
                       <div className="text-white font-semibold leading-tight">{profile.display_name}</div>
                       <div className="text-cyan-400 text-xs font-medium leading-tight">{userTypeLabel}</div>
@@ -448,6 +455,20 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
               </div>
 
               <div className="mt-4 border-t border-white/10 pt-3 grid gap-2">
+                {profile?.access_role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      handleNavigate('admin');
+                    }}
+                    className="w-full h-11 flex items-center justify-between gap-3 px-4 rounded-2xl transition-all duration-200 border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Shield className="w-4.5 h-4.5 text-gray-300" />
+                      <span className="text-sm font-semibold text-white">{t.nav.admin}</span>
+                    </div>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     toggleLanguage();

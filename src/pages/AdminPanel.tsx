@@ -1396,13 +1396,20 @@ export function AdminPanel() {
 
           {selectedEvent && (
             <>
+              {(() => {
+                const showActive =
+                  !!selectedEvent.is_live &&
+                  !!showState &&
+                  (showState.voting_open || !!showState.current_round_id || !!showState.current_performance_id);
+
+                return (
               <div className="bg-gradient-to-r from-cyan-500/20 to-blue-600/20 rounded-lg p-6 border border-cyan-500/30">
                 <h2 className="text-2xl font-bold text-white mb-2">{selectedEvent.title}</h2>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400">Status:</span>
-                    <span className={`font-semibold ${selectedEvent.is_live ? 'text-red-400' : 'text-gray-400'}`}>
-                      {selectedEvent.is_live ? 'LIVE' : 'Offline'}
+                    <span className={`font-semibold ${showActive ? 'text-red-400' : 'text-gray-400'}`}>
+                      {showActive ? 'LIVE' : 'Offline'}
                     </span>
                   </div>
                   {showState && (
@@ -1463,6 +1470,8 @@ export function AdminPanel() {
                   </div>
                 )}
               </div>
+                );
+              })()}
 
               {rounds.length === 0 ? (
                 showRoundSetup ? (

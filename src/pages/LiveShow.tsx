@@ -356,6 +356,9 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
     );
   }
 
+  const showActive =
+    !!showState && (showState.voting_open || !!showState.current_round_id || !!showState.current_performance_id);
+
   const isVotingPhase = showState?.voting_open && !currentPerformance && roundPerformances.length > 0;
 
   const completedPerformances = roundPerformances.filter(
@@ -371,10 +374,12 @@ export function LiveShow({ onLoginRequired }: LiveShowProps = {}) {
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/15 to-electric-500/5 rounded-full blur-3xl" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <div className="badge-live">
-              <div className="w-2 h-2 bg-neon-400 rounded-full animate-pulse" />
-              {t.liveShow.liveNow}
-            </div>
+            {showActive && (
+              <div className="badge-live">
+                <div className="w-2 h-2 bg-neon-400 rounded-full animate-pulse" />
+                {t.liveShow.liveNow}
+              </div>
+            )}
             {currentRound && (
               <div className="badge-primary">
                 {currentRound.round_type === 'final' ? (
