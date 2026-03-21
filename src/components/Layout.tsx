@@ -192,7 +192,7 @@ export function Layout({ children, currentPage, onNavigate, onShowAuth }: Layout
                 <img
                   src="/couch_slam_02.png"
                   alt="Couch Slam"
-                  className="h-8 sm:h-9 md:h-10 w-auto object-contain transform group-hover:scale-[1.02] transition-all duration-300 drop-shadow-lg"
+                  className="h-9 sm:h-10 md:h-12 w-auto object-contain transform group-hover:scale-[1.02] transition-all duration-300 drop-shadow-lg"
                 />
               </button>
 
